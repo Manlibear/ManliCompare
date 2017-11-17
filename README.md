@@ -7,7 +7,7 @@ Comparing gear stats to your off specs, so you don't have to!
 
 
 # Installation
-Copy the `ManliCompare` folder to the AddOns directory (`~\World of Warcraft\Interface\AddOns`) and
+Copy the `ManliCompare-master` folder to the AddOns directory (`~\World of Warcraft\Interface\AddOns`) and
 
 # Alpha Test
 This is a pretty early concept, so things to bear in mind:
