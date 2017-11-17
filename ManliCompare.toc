@@ -1,0 +1,10 @@
+## Interface: 70300
+## Title: ManliCompare
+## Author: Manlibear
+
+
+
+ManliCompare.lua
+
+
+external\external.xml
