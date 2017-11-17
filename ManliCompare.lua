@@ -41,6 +41,32 @@ local weights =
       CriticalStrike = 6.06,
       Versatility = 4.56
     }
+  },
+  DeathKnight =
+  {
+    Blood = {
+      Stamina = 12.01,
+      Strength  = 9.01,
+      Haste = 7.51,
+      Versatility = 6.01,
+      Mastery = 4.51,
+      CriticalStrike = 3.01
+    },
+
+    Frost = {
+      Strength = 9.01,
+      Mastery = 7.51,
+      CriticalStrike = 6.76,
+      Haste = 6.01,
+      Versatility = 5.26
+    },
+
+    Unholy = {
+      Strength = 9.07,
+      Mastery = 7.57,
+      Haste = 6.07,
+      CriticalStrike = 4,57,
+      Versatility = 4.}
   }
 }
 
@@ -79,14 +105,28 @@ local itemEquipLocToSlot2 =
 
 local specIcons = {
   Restoration = "spell_nature_healingwavelesser",
-  Enhancement = "ability_shaman_stormstrike"
+  Enhancement = "ability_shaman_stormstrike",
+  Blood = "spell_deathknight_bloodpresence",
+  Frost = "spell_deathknight_frostpresence",
+  Unholy = "spell_deathknight_unholypresence"
 }
 
 local specs = {
-  Shaman = { Enhancement = {}, Restoration = {}}
+  Shaman =
+  {
+    Enhancement = {},
+    Restoration = {}
+  },
+
+  DeathKnight =
+  {
+    Blood ={},
+    Frost = {},
+    Unholy = {}
+  }
 }
 
-local class = select(1, UnitClass("player"))
+local class = select(1, UnitClass("player")):gsub(" ", "")
 
 
 function mLog(...)
@@ -102,30 +142,44 @@ end
 
 function ManliCompare:UNIT_INVENTORY_CHANGED()
 
-  if GetCurrentEquipmentSetName() ~= "Fishing" then
-    id, name = GetSpecializationInfo(GetSpecialization())
-    SaveEquipmentSet(name, specIcons[name])
+  id, name = GetSpecializationInfo(GetSpecialization())
 
-    local _, specName = GetSpecializationInfo(GetSpecialization())
-    local numSets = GetNumEquipmentSets()
-    local inSet = {}
-    for i = 1, numSets do
-      local setName, icon, setID = GetEquipmentSetInfo(i)
-      local items = GetEquipmentSetItemIDs(setName)
-
-      if specs[class][setName] ~= nil and setName == specName then
-        specs[class][setName] = {}
-        local setSlots = {}
-        for slot, item in pairs(items) do
-          local stSpec = GetItemStats(GetInventoryItemLink("player", slot))
-          setSlots[slot] = GetWeightedStatScore(class, specName, stSpec)
-        end
-
-        table.insert(specs[class][setName], setSlots)
-      end
-    end
-
+  if not EquipmentSetExists(name) then
+    return
   end
+
+  SaveEquipmentSet(name, specIcons[name])
+
+  local _, specName = GetSpecializationInfo(GetSpecialization())
+  local numSets = GetNumEquipmentSets()
+  local inSet = {}
+  for i = 1, numSets do
+    local setName, icon, setID = GetEquipmentSetInfo(i)
+    local items = GetEquipmentSetItemIDs(setName)
+
+    if specs[class][setName] ~= nil and setName == specName then
+      specs[class][setName] = {}
+      local setSlots = {}
+      for slot, item in pairs(items) do
+        local stSpec = GetItemStats(GetInventoryItemLink("player", slot))
+        setSlots[slot] = GetWeightedStatScore(class, specName, stSpec)
+      end
+
+      table.insert(specs[class][setName], setSlots)
+    end
+  end
+
+end
+
+function EquipmentSetExists(checkName)
+  local numSets = GetNumEquipmentSets()
+  local inSet = {}
+
+  for i = 1, numSets do
+    local name = GetEquipmentSetInfo(i)
+    if checkName == name then return true end
+  end
+  return false
 end
 
 function GetCurrentEquipmentSetName()
@@ -177,10 +231,10 @@ local function OnTooltipSetItem ()
           local delta = hoverScore - specScore
           local deltaPerc = ( 100 / specScore) * delta
 
-          if delta > 0 then
+          if delta >= 1 then
             GameTooltip:AddDoubleLine(spec, "+"..formatValue(deltaPerc).."%", 1, 1, 1, 0, 1, 0)
-            else if delta < 0 then
-              if deltaPerc == -100 then
+          else if delta < 1 then
+              if deltaPerc == -100 or deltaPerc == 0 then
                 GameTooltip:AddDoubleLine(spec, "X ", 1, 1, 1, 1, 0, 0)
               else
                 GameTooltip:AddDoubleLine(spec, formatValue(deltaPerc).."%", 1, 1, 1, 1, 0, 0)
@@ -208,9 +262,6 @@ GameTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
 hooksecurefunc (GameTooltip, "SetBagItem", setHoverItem)
 hooksecurefunc (GameTooltip, "SetLootRollItem", setHoverItem)
 hooksecurefunc (GameTooltip, "SetLootItem", setHoverItem)
-
-
-
 
 --Maths
 function GetWeightedStatScore(class, spec, stats)
