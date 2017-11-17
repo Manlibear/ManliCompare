@@ -3,6 +3,8 @@ ManliCompare = LibStub("AceAddon-3.0"):NewAddon("ManliCompare", "AceEvent-3.0")
 
 local last = ""
 local hoverID = ""
+local hoverslot = ""
+local lastHoverID = "-"
 local lnkHover = ""
 local debug = false
 
@@ -205,15 +207,22 @@ end
 
 
 -- TOOLTIPS
-local function OnTooltipSetItem ()
+local function OnTooltipSetItem (self)
+
+  _, lnkHover = GameTooltip:GetItem()
+
+  if lnkHover == nil then return end
 
   local _, currentSpecName = GetSpecializationInfo(GetSpecialization())
+
+  local hoverItemName, _, _, _, _, _, _, _, itemSlot = GetItemInfo(lnkHover)
+
+  local itemSlotNum = itemEquipLocToSlot1[itemSlot] or itemEquipLocToSlot2[itemSlot]
 
   for spec, v in pairs(specs[class]) do
 
     if specs[class][spec][1] ~= nil then
-      local hoverItemName, _, _, _, _, _, _, _, itemSlot = GetItemInfo(hoverID)
-      local itemSlotNum = itemEquipLocToSlot1[itemSlot] or itemEquipLocToSlot2[itemSlot]
+
       local specScore = specs[class][spec][1][itemSlotNum]
 
       if specScore ~= nil then
@@ -229,25 +238,18 @@ local function OnTooltipSetItem ()
             end
           end
 
-          if hoverItemName ~= last then
-            mLog(hoverItemName)
-            mLog(stHover)
-          end
-
-          last = hoverItemName
-
           local hoverScore = GetWeightedStatScore(class, spec, stHover)
 
           local delta = hoverScore - specScore
-          local deltaPerc = ( 100 / specScore) * delta
+          local deltaPerc = formatValue(( 100 / specScore) * delta)
 
-          if delta >= 1 then
-            GameTooltip:AddDoubleLine(spec, "+"..formatValue(deltaPerc).."%", 1, 1, 1, 0, 1, 0)
-          else if delta < 1 then
+          if deltaPerc > 0 then
+            GameTooltip:AddDoubleLine(spec, "+"..deltaPerc.."%", 1, 1, 1, 0, 1, 0)
+          else if deltaPerc < 0 then
               if deltaPerc == -100 or deltaPerc == 0 then
                 GameTooltip:AddDoubleLine(spec, "X ", 1, 1, 1, 1, 0, 0)
               else
-                GameTooltip:AddDoubleLine(spec, formatValue(deltaPerc).."%", 1, 1, 1, 1, 0, 0)
+                GameTooltip:AddDoubleLine(spec, deltaPerc.."%", 1, 1, 1, 1, 0, 0)
               end
             else
               GameTooltip:AddDoubleLine(spec, "[E]", 1, 1, 1, 1, 1, 1)
@@ -259,21 +261,7 @@ local function OnTooltipSetItem ()
   end
 end
 
-
-function setHoverItem(tip, bag, slot)
-  if slot ~= nil then
-    lnkHover = GetContainerItemLink(bag, slot)
-    if lnkHover ~= nil then
-      hoverID = tonumber(lnkHover:match("|Hitem:(%d+):"))
-    end
-  end
-end
-
--- Hooks
 GameTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
-hooksecurefunc (GameTooltip, "SetBagItem", setHoverItem)
-hooksecurefunc (GameTooltip, "SetLootRollItem", setHoverItem)
-hooksecurefunc (GameTooltip, "SetLootItem", setHoverItem)
 
 --Maths
 function GetWeightedStatScore(class, spec, stats)
