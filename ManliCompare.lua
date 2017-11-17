@@ -144,7 +144,7 @@ function ManliCompare:UNIT_INVENTORY_CHANGED()
 
   id, name = GetSpecializationInfo(GetSpecialization())
 
-  if not EquipmentSetExists(name) then
+  if not EquipmentSetExists(name) or IsEquippedItemType("Fishing Poles") then
     return
   end
 
@@ -178,6 +178,16 @@ function EquipmentSetExists(checkName)
   for i = 1, numSets do
     local name = GetEquipmentSetInfo(i)
     if checkName == name then return true end
+  end
+  return false
+end
+
+function SpecializationExists(checkName)
+  local numSpecs = GetNumSpecializations(false, false) -- get player spec LibStub
+  for i = 1, numSpecs do
+    local _,name =GetSpecializationInfo(i)
+    if name == checkName then return name end
+
   end
   return false
 end
@@ -251,9 +261,11 @@ end
 
 
 function setHoverItem(tip, bag, slot)
-  lnkHover = GetContainerItemLink(bag, slot)
-  if lnkHover ~= nil then
-    hoverID = tonumber(lnkHover:match("|Hitem:(%d+):"))
+  if slot ~= nil then
+    lnkHover = GetContainerItemLink(bag, slot)
+    if lnkHover ~= nil then
+      hoverID = tonumber(lnkHover:match("|Hitem:(%d+):"))
+    end
   end
 end
 
