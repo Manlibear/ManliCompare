@@ -6,7 +6,7 @@ local hoverID = ""
 local hoverslot = ""
 local lastHoverID = "-"
 local lnkHover = ""
-local debug = false
+local debug = true
 
 function dump(o)
   if type(o) == 'table' then
@@ -28,56 +28,6 @@ function mLog(...)
   end
 end
 
-
-local weights =
-{
-  Shaman =
-  {
-    Enhancement =
-    {
-      Agility = 9.08,
-      Haste = 7.58,
-      Mastery = 6.08,
-      CriticalStrike = 4.58,
-      Versatility = 3.08
-    },
-
-    Restoration =
-    {
-      Intellect = 9.06,
-      Haste = 3.06,
-      Mastery = 7.56,
-      CriticalStrike = 6.06,
-      Versatility = 4.56
-    }
-  },
-  DeathKnight =
-  {
-    Blood = {
-      Stamina = 12.01,
-      Strength  = 9.01,
-      Haste = 7.51,
-      Versatility = 6.01,
-      Mastery = 4.51,
-      CriticalStrike = 3.01
-    },
-
-    Frost = {
-      Strength = 9.01,
-      Mastery = 7.51,
-      CriticalStrike = 6.76,
-      Haste = 6.01,
-      Versatility = 5.26
-    },
-
-    Unholy = {
-      Strength = 9.07,
-      Mastery = 7.57,
-      Haste = 6.07,
-      CriticalStrike = 4,57,
-      Versatility = 4.}
-  }
-}
 
 local itemEquipLocToSlot1 =
 {
@@ -112,28 +62,68 @@ local itemEquipLocToSlot2 =
   INVTYPE_WEAPON = 17,
 }
 
-local specIcons = {
-  --Shaman
-  Restoration = "spell_nature_healingwavelesser",
-  Enhancement = "ability_shaman_stormstrike",
-  --DeathKnight
-  Blood = "spell_deathknight_bloodpresence",
-  Frost = "spell_deathknight_frostpresence",
-  Unholy = "spell_deathknight_unholypresence"
-}
 
-local specs = {
+local db = {
   Shaman =
   {
-    Enhancement = {},
-    Restoration = {}
+    Enhancement = {
+      Icon = "ability_shaman_stormstrike",
+      Set = {},
+      Weights = {
+        Agility = 9.08,
+        Haste = 7.58,
+        Mastery = 6.08,
+        CriticalStrike = 4.58,
+        Versatility = 3.08}
+    },
+    Restoration = {
+      Icon = "spell_nature_healingwavelesser",
+      Set = {},
+      Weights = {
+        Intellect = 9.06,
+        Haste = 3.06,
+        Mastery = 7.56,
+        CriticalStrike = 6.06,
+        Versatility = 4.56
+      }
+    }
   },
-
   DeathKnight =
   {
-    Blood ={},
-    Frost = {},
-    Unholy = {}
+    Blood ={
+      Icon = "spell_deathknight_bloodpresence",
+      Set = {},
+      Weights = {
+        Stamina = 12.01,
+        Strength  = 9.01,
+        Haste = 7.51,
+        Versatility = 6.01,
+        Mastery = 4.51,
+        CriticalStrike = 3.01
+      }
+    },
+    Frost = {
+      Icon = "spell_deathknight_frostpresence",
+      Set = {},
+      Weights = {
+        Strength = 9.01,
+        Mastery = 7.51,
+        CriticalStrike = 6.76,
+        Haste = 6.01,
+        Versatility = 5.26
+      }
+    },
+    Unholy = {
+      Icon = "spell_deathknight_unholypresence",
+      Set = {},
+      Weights = {
+        Strength = 9.07,
+        Mastery = 7.57,
+        Haste = 6.07,
+        CriticalStrike = 4,57,
+        Versatility = 4
+      }
+    }
   }
 }
 
@@ -151,7 +141,7 @@ function ManliCompare:UNIT_INVENTORY_CHANGED()
     return
   end
 
-  SaveEquipmentSet(name, specIcons[name])
+  SaveEquipmentSet(name, db[class][name]["Icon"])
 
   local _, specName = GetSpecializationInfo(GetSpecialization())
   local numSets = GetNumEquipmentSets()
@@ -160,18 +150,18 @@ function ManliCompare:UNIT_INVENTORY_CHANGED()
     local setName, icon, setID = GetEquipmentSetInfo(i)
     local items = GetEquipmentSetItemIDs(setName)
 
-    if specs[class][setName] ~= nil and setName == specName then
-      specs[class][setName] = {}
+    if setName == specName then
+      db[class][setName]["Set"] = {}
       local setSlots = {}
       for slot, item in pairs(items) do
         local stSpec = GetItemStats(GetInventoryItemLink("player", slot))
         setSlots[slot] = GetWeightedStatScore(class, specName, stSpec)
       end
 
-      table.insert(specs[class][setName], setSlots)
+      db[class][setName]["Set"] = setSlots
     end
   end
-
+  mLog(db)
 end
 
 function EquipmentSetExists(checkName)
@@ -220,11 +210,11 @@ local function OnTooltipSetItem (self)
 
   local itemSlotNum = itemEquipLocToSlot1[itemSlot] or itemEquipLocToSlot2[itemSlot]
 
-  for spec, v in pairs(specs[class]) do
+  for spec, v in pairs(db[class]) do
 
-    if specs[class][spec][1] ~= nil then
+    if db[class][spec]["Set"] ~= nil then
 
-      local specScore = specs[class][spec][1][itemSlotNum]
+      local specScore = db[class][spec]["Set"][itemSlotNum]
 
       if specScore ~= nil then
         if lnkHover ~= nil then
@@ -245,14 +235,6 @@ local function OnTooltipSetItem (self)
           local hoverScore = GetWeightedStatScore(class, spec, stHover)
 
           local delta = hoverScore - specScore
-
-
-          if last ~= lnkHover then
-            --mLog(spec .." - S:"..tostring(specScore).." v H:".. tostring(hoverScore))
-            mLog(stHover)
-          end
-
-          last = lnkHover
 
           local deltaPerc = formatValue(( 100 / specScore) * delta)
 
@@ -290,8 +272,8 @@ end
 
 function ApplyStatWeight(class, spec, stat, value)
 
-  if weights[class][spec][stat] ~= nil then
-    return value * (weights[class][spec][stat])
+  if db[class][spec]["Weights"][stat] ~= nil then
+    return value * (db[class][spec]["Weights"][stat])
   end
 
   if last ~= class..spec..stat then
