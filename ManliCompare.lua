@@ -145,8 +145,9 @@ function frame:OnEvent(event, arg1)
 end
 
 frame:SetScript("OnEvent", frame.OnEvent);
-SLASH_COMPARE = "/manlicompare";
-function SlashCmdList.SLASH_COMPARE(msg)
+
+SLASH_MANLICOMPARE1 = "/manlicompare";
+function SlashCmdList.MANLICOMPARE(msg)
 
   if msg == "reset" then
     ManliCompareDB = newdb
