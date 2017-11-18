@@ -62,8 +62,7 @@ local itemEquipLocToSlot2 =
   INVTYPE_WEAPON = 17,
 }
 
-
-local db = {
+local newdb = {
   Shaman =
   {
     Enhancement = {
@@ -127,6 +126,34 @@ local db = {
   }
 }
 
+
+-- data access
+local frame = CreateFrame("FRAME"); -- Need a frame to respond to events
+frame:RegisterEvent("ADDON_LOADED"); -- Fired when saved variables are loaded
+frame:RegisterEvent("PLAYER_LOGOUT"); -- Fired when about to log out
+
+function frame:OnEvent(event, arg1)
+ if event == "ADDON_LOADED" and arg1 == "ManliCompare" then
+
+  if ManliCompareDB == nil then
+    ManliCompareDB = newdb
+    mLog("ManliCompare has created new db")
+  end
+ elseif event == "PLAYER_LOGOUT" then
+
+ end
+end
+
+frame:SetScript("OnEvent", frame.OnEvent);
+SLASH_COMPARE = "/manlicompare";
+function SlashCmdList.SLASH_COMPARE(msg)
+
+  if msg == "reset" then
+    ManliCompareDB = newdb
+  end
+end
+
+
 local class = select(1, UnitClass("player")):gsub(" ", "")
 
 function ManliCompare:OnInitialize()
@@ -141,7 +168,7 @@ function ManliCompare:UNIT_INVENTORY_CHANGED()
     return
   end
 
-  SaveEquipmentSet(name, db[class][name]["Icon"])
+  SaveEquipmentSet(name, ManliCompareDB[class][name]["Icon"])
 
   local _, specName = GetSpecializationInfo(GetSpecialization())
   local numSets = GetNumEquipmentSets()
@@ -151,17 +178,16 @@ function ManliCompare:UNIT_INVENTORY_CHANGED()
     local items = GetEquipmentSetItemIDs(setName)
 
     if setName == specName then
-      db[class][setName]["Set"] = {}
+      ManliCompareDB[class][setName]["Set"] = {}
       local setSlots = {}
       for slot, item in pairs(items) do
         local stSpec = GetItemStats(GetInventoryItemLink("player", slot))
         setSlots[slot] = GetWeightedStatScore(class, specName, stSpec)
       end
 
-      db[class][setName]["Set"] = setSlots
+      ManliCompareDB[class][setName]["Set"] = setSlots
     end
   end
-  mLog(db)
 end
 
 function EquipmentSetExists(checkName)
@@ -210,11 +236,11 @@ local function OnTooltipSetItem (self)
 
   local itemSlotNum = itemEquipLocToSlot1[itemSlot] or itemEquipLocToSlot2[itemSlot]
 
-  for spec, v in pairs(db[class]) do
+  for spec, v in pairs(ManliCompareDB[class]) do
 
-    if db[class][spec]["Set"] ~= nil then
+    if ManliCompareDB[class][spec]["Set"] ~= nil then
 
-      local specScore = db[class][spec]["Set"][itemSlotNum]
+      local specScore = ManliCompareDB[class][spec]["Set"][itemSlotNum]
 
       if specScore ~= nil then
         if lnkHover ~= nil then
@@ -272,8 +298,8 @@ end
 
 function ApplyStatWeight(class, spec, stat, value)
 
-  if db[class][spec]["Weights"][stat] ~= nil then
-    return value * (db[class][spec]["Weights"][stat])
+  if ManliCompareDB[class][spec]["Weights"][stat] ~= nil then
+    return value * (ManliCompareDB[class][spec]["Weights"][stat])
   end
 
   if last ~= class..spec..stat then

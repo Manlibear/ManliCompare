@@ -1,6 +1,7 @@
 ## Interface: 70300
 ## Title: ManliCompare
 ## Author: Manlibear
+## SavedVariablesPerCharacter: ManliCompareDB
 
 
 
