@@ -21,6 +21,13 @@ function dump(o)
   end
 end
 
+function mLog(...)
+
+  if debug then
+    print(dump(...))
+  end
+end
+
 
 local weights =
 {
@@ -106,8 +113,10 @@ local itemEquipLocToSlot2 =
 }
 
 local specIcons = {
+  --Shaman
   Restoration = "spell_nature_healingwavelesser",
   Enhancement = "ability_shaman_stormstrike",
+  --DeathKnight
   Blood = "spell_deathknight_bloodpresence",
   Frost = "spell_deathknight_frostpresence",
   Unholy = "spell_deathknight_unholypresence"
@@ -129,14 +138,6 @@ local specs = {
 }
 
 local class = select(1, UnitClass("player")):gsub(" ", "")
-
-
-function mLog(...)
-
-  if debug then
-    print(dump(...))
-  end
-end
 
 function ManliCompare:OnInitialize()
   self:RegisterEvent("UNIT_INVENTORY_CHANGED")
@@ -232,24 +233,36 @@ local function OnTooltipSetItem (self)
           for i = 1, GameTooltip:NumLines() do
             local textLeft = _G["GameTooltipTextLeft"..i]:GetText() or ""
 
-            --\+(\d*) (.*)
-            for value,stat in textLeft:gmatch("%+(%d*) (.*)") do
-              stHover[stat] = value
+            if string.starts(textLeft, "+") then
+              --\+(\d*) (.*)
+              for value,stat in textLeft:gmatch("%+(%d*) (.*)") do
+                stHover[stat] = value
+              end
             end
+
           end
 
           local hoverScore = GetWeightedStatScore(class, spec, stHover)
 
           local delta = hoverScore - specScore
+
+
+          if last ~= lnkHover then
+            --mLog(spec .." - S:"..tostring(specScore).." v H:".. tostring(hoverScore))
+            mLog(stHover)
+          end
+
+          last = lnkHover
+
           local deltaPerc = formatValue(( 100 / specScore) * delta)
 
           if deltaPerc > 0 then
             GameTooltip:AddDoubleLine(spec, "+"..deltaPerc.."%", 1, 1, 1, 0, 1, 0)
           else if deltaPerc < 0 then
-              if deltaPerc == -100 or deltaPerc == 0 then
-                GameTooltip:AddDoubleLine(spec, "X ", 1, 1, 1, 1, 0, 0)
+              if deltaPerc == -100 then
+                GameTooltip:AddDoubleLine(spec, "X ", 1, 1, 1, 0.8, 0, 0)
               else
-                GameTooltip:AddDoubleLine(spec, deltaPerc.."%", 1, 1, 1, 1, 0, 0)
+                GameTooltip:AddDoubleLine(spec, deltaPerc.."%", 1, 1, 1, 0.8, 0, 0)
               end
             else
               GameTooltip:AddDoubleLine(spec, "[E]", 1, 1, 1, 1, 1, 1)
@@ -282,13 +295,18 @@ function ApplyStatWeight(class, spec, stat, value)
   end
 
   if last ~= class..spec..stat then
-   mLog("Unable to find weight for ".. class .. ".".. spec..".".. stat)
+   --mLog("Unable to find weight for ".. class .. ".".. spec..".".. stat)
    last = class..spec..stat
   end
 
   return 0
 end
 
+-- string helpers
 function formatValue(v)
   return tonumber(string.format("%.0f", v))
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
 end
